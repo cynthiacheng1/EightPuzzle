@@ -67,6 +67,9 @@ def clockWise(initial, goal):
         
 print(clockWise(initial, goal))
 
+def h1(initial,goal):
+    return calculateManhattan(intial,goal)
+
 def h2(intial,goal):
     return 3*clockWise(initial,goal) + calculateManhattan(intial,goal)
 
