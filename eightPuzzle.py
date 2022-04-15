@@ -1,11 +1,13 @@
-
-with open("Input1.txt") as file:
+# open input file 
+with open("Input3.txt") as file:
     lines = [line.rstrip() for line in file]
 
+# global vars
 initial = []
-goal = []
+goalBoard = []
 clockwiseOrder = [[0,0],[0,1],[0,2],[1,2],[2,2],[2,1],[2,0],[1,0]]
 
+# load in initial and goal states
 for i in range(len(lines)):
     if (i < 3):
         # for x in lines[i].split():
@@ -14,7 +16,7 @@ for i in range(len(lines)):
     elif (i > 3):
         # for x in lines[i].split():
         #     goal.append(int(x))
-        goal.append([int(x) for x in lines[i].split()])
+        goalBoard.append([int(x) for x in lines[i].split()])
 
 class Node:
     def __init__(self, board, level, fval):
@@ -75,8 +77,8 @@ class Puzzle:
     def calculateManhattan(self, initial, goal):
         total = 0
         for i in range(1,9):
-            initial_x, initial_y = findCoordinates(i,initial)
-            goal_x, goal_y = findCoordinates(i,goal)
+            initial_x, initial_y = self.findCoordinates(i,initial)
+            goal_x, goal_y = self.findCoordinates(i,goal)
             total += abs(initial_x-goal_x) + abs(goal_y-initial_y)
         return total
 
@@ -106,20 +108,20 @@ class Puzzle:
         return total
 
     def h1(self, initial, goal):
-        return calculateManhattan(intial,goal)
+        return self.calculateManhattan(initial, goal)
 
     def h2(self, intial, goal):
-        return 3*clockWise(initial,goal) + calculateManhattan(intial,goal)
+        return 3*clockWise(initial, goal) + calculateManhattan(intial, goal)
 
-    def f(self,start,goal):
-        return h1(start, goal) + start.level        
+    def f(self, start, goal):
+        return self.h1(start.board, goal) + start.level   
 
     def process(self):
         start = initial
-        self.goal = goal
+        goal = goalBoard
         
-        start = Node(start,0,0)
-        start.fval = self.f(start,goal)
+        start = Node(start, 0, 0)
+        start.fval = self.f(start, goal)
         
         self.open.append(start)
         print("\n\n")
@@ -134,7 +136,7 @@ class Puzzle:
                     print(j,end=" ")
                 print("")
             """ If the difference between current and goal node is 0 we have reached the goal node"""
-            if(self.h(cur.board,goal) == 0):
+            if(self.h1(cur.board,goal) == 0):
                 break
             for i in cur.generate_child():
                 i.fval = self.f(i,goal)
