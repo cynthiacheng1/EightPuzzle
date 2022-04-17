@@ -1,40 +1,57 @@
-# open input file 
-with open("Input3.txt") as file:
-    lines = [line.rstrip() for line in file]
-
 # global vars
 initial = []
 goalBoard = []
+boardsUsed = []
 clockwiseOrder = [[0,0],[0,1],[0,2],[1,2],[2,2],[2,1],[2,0],[1,0]]
 
-# load in initial and goal states
-for i in range(len(lines)):
-    if (i < 3):
-        # for x in lines[i].split():
-        #     initial.append(int(x))
-        initial.append([int(x) for x in lines[i].split()])
-    elif (i > 3):
-        # for x in lines[i].split():
-        #     goal.append(int(x))
-        goalBoard.append([int(x) for x in lines[i].split()])
+# move these inside puzzle
+N = 0
+
+# load in our 8 puzzle initial and goal states from input file given filename string
+def loadInputFile(filename):
+    # open input file 
+    with open(filename) as file:
+        lines = [line.rstrip() for line in file]
+
+    # load in initial and goal states
+    for i in range(len(lines)):
+        if (i < 3):
+            # for x in lines[i].split():
+            #     initial.append(int(x))
+            initial.append([int(x) for x in lines[i].split()])
+        elif (i > 3):
+            # for x in lines[i].split():
+            #     goal.append(int(x))
+            goalBoard.append([int(x) for x in lines[i].split()])
 
 class Node:
     def __init__(self, board, level, fval):
+        # 2D array of tile placements
         self.board = board
+        # node level in tree
         self.level = level
+        # f value for this tile arrangement
         self.fval = fval
-        
-    def generate_child(self):
-        x, y = self.find(self.board, 0)
-        val_list = [[x, y - 1],[x, y + 1], [x - 1, y], [x + 1, y]]
-        children = []
-        for i in val_list:
-            child = self.shuffle(self.board, x, y, i[0], i[1])
-            if child is not None:
-                child_node = Node(child, self.level + 1, 0)
-                children.append(child_node)
-        return children
-    
+        #print(board)
+        self.movement = ""
+        boardsUsed.append(board)
+
+    # makes and returns a copy a 2D board array
+    def copy(self, board):
+        temp = []
+        for i in board:
+            t = []
+            for j in i:
+                t.append(j)
+            temp.append(t)
+        return temp
+    #
+    def find(self, puz, x):
+        for i in range(0,len(self.board)):
+            for j in range(0,len(self.board)):
+                if puz[i][j] == x:
+                    return i,j
+    #
     def shuffle(self, puz, x1, y1, x2, y2):
         if x2 >= 0 and x2 < len(self.board) and y2 >= 0 and y2 < len(self.board):
             temp_puz = []
@@ -45,28 +62,27 @@ class Node:
             return temp_puz
         else:
             return None
-            
-
-    def copy(self, root):
-        temp = []
-        for i in root:
-            t = []
-            for j in i:
-                t.append(j)
-            temp.append(t)
-        return temp    
-            
-    def find(self, puz, x):
-        for i in range(0,len(self.board)):
-            for j in range(0,len(self.board)):
-                if puz[i][j] == x:
-                    return i,j
+    #
+    def generate_child(self):
+        x, y = self.find(self.board, 0)
+        val_list = [[x, y - 1, "L"],[x, y + 1, "R"], [x - 1, y, "U"], [x + 1, y, "D"]]
+        children = []
+        for i in val_list:
+            child = self.shuffle(self.board, x, y, i[0], i[1])
+            if child is not None and child not in boardsUsed:
+                child_node = Node(child, self.level + 1, 0)
+                child_node.movement = i[2]
+                children.append(child_node)
+        return children
 
 
 class Puzzle:
     def __init__(self):
         self.open = []
         self.closed = []
+        self.solutionN = 0
+        self.solutionAVals = []
+        self.solutionfVals = []
 
     def findCoordinates(self, num, board):
         for i in range(len(board)):
@@ -83,7 +99,7 @@ class Puzzle:
         return total
 
     def findNext(self, num, board):
-        num_x, num_y = findCoordinates(num,board)
+        num_x, num_y = self.findCoordinates(num,board)
         if (num_x == 1 and num_y == 0):
             return board[0][0]
         else:
@@ -99,8 +115,8 @@ class Puzzle:
         for c in range(len(clockwiseOrder)):
             num = initial[clockwiseOrder[c][0]][clockwiseOrder[c][1]]
             if (num != 0):
-                nextIntialNum = findNext(num, initial)
-                nextGoalNum = findNext(num, goal)
+                nextIntialNum = self.findNext(num, initial)
+                nextGoalNum = self.findNext(num, goal)
                 if (nextIntialNum != nextGoalNum):
                     total += 2
         if (initial[1][1] != goal[1][1]):
@@ -111,7 +127,7 @@ class Puzzle:
         return self.calculateManhattan(initial, goal)
 
     def h2(self, intial, goal):
-        return 3*clockWise(initial, goal) + calculateManhattan(intial, goal)
+        return 3*self.clockWise(initial, goal) + self.calculateManhattan(intial, goal)
 
     def f(self, start, goal):
         return self.h1(start.board, goal) + start.level   
@@ -124,31 +140,39 @@ class Puzzle:
         start.fval = self.f(start, goal)
         
         self.open.append(start)
-        print("\n\n")
+        
         while True:
             cur = self.open[0]
-            print("")
-            print("  | ")
-            print("  | ")
-            print(" \\\'/ \n")
-            for i in cur.board:
-                for j in i:
-                    print(j,end=" ")
-                print("")
-            """ If the difference between current and goal node is 0 we have reached the goal node"""
+            self.solutionfVals.append(str(cur.fval))
+            if cur.movement != "":
+                self.solutionAVals.append(cur.movement)
+            
             if(self.h1(cur.board,goal) == 0):
+                solutionBoard = cur.board
+                self.solutionN += 1
+                f = open("output.txt", "w+")
+                for i in range(3):
+                    for j in range(3):
+                        f.write(str(initial[i][j]) + " ")
+                    f.write("\n")
+                f.write("\n")
+                for i in range(3):
+                    for j in range(3):
+                        f.write(str(cur.board[i][j]) + " ")
+                    f.write("\n")
+                f.write("\n" + str(cur.level) + "\n" + str(self.solutionN) + "\n" + " ".join(self.solutionAVals) + "\n" + " ".join(self.solutionfVals))
                 break
             for i in cur.generate_child():
+                self.solutionN += 1
                 i.fval = self.f(i,goal)
                 self.open.append(i)
             self.closed.append(cur)
             del self.open[0]
 
-            """ sort the opne list based on f value """
             self.open.sort(key = lambda x:x.fval,reverse=False)
 
 
+loadInputFile("Sample_Input.txt")
 puz = Puzzle()
 puz.process()
-        
 
