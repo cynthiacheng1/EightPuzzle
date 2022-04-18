@@ -1,11 +1,12 @@
+# Eight Puzzle Problem CS 4613
+# Matthew Swartz (mcs871) and Cynthia Cheng (cc5469)
+
 # global vars
 initial = []
 goalBoard = []
 boardsUsed = []
 clockwiseOrder = [[0,0],[0,1],[0,2],[1,2],[2,2],[2,1],[2,0],[1,0]]
 
-# move these inside puzzle
-N = 0
 
 # load in our 8 puzzle initial and goal states from input file given filename string
 def loadInputFile(filename):
@@ -13,15 +14,11 @@ def loadInputFile(filename):
     with open(filename) as file:
         lines = [line.rstrip() for line in file]
 
-    # load in initial and goal states
+    # load in initial and goal boards
     for i in range(len(lines)):
         if (i < 3):
-            # for x in lines[i].split():
-            #     initial.append(int(x))
             initial.append([int(x) for x in lines[i].split()])
         elif (i > 3):
-            # for x in lines[i].split():
-            #     goal.append(int(x))
             goalBoard.append([int(x) for x in lines[i].split()])
 
 class Node:
@@ -32,8 +29,9 @@ class Node:
         self.level = level
         # f value for this tile arrangement
         self.fval = fval
-        #print(board)
+        # last move direction 
         self.movement = ""
+        # keeping track of all previous boards for graph search 
         boardsUsed.append(board)
 
     # makes and returns a copy a 2D board array
@@ -45,13 +43,15 @@ class Node:
                 t.append(j)
             temp.append(t)
         return temp
-    #
+
+    #returns the coordinates of a number in a puzzle
     def find(self, puz, x):
         for i in range(0,len(self.board)):
             for j in range(0,len(self.board)):
                 if puz[i][j] == x:
                     return i,j
-    #
+
+    #helper function to move in a direction on the puzzle 
     def shuffle(self, puz, x1, y1, x2, y2):
         if x2 >= 0 and x2 < len(self.board) and y2 >= 0 and y2 < len(self.board):
             temp_puz = []
@@ -62,14 +62,17 @@ class Node:
             return temp_puz
         else:
             return None
-    #
+    
+    #generating each possibility of board movement 
     def generate_child(self):
         x, y = self.find(self.board, 0)
+        #values for each movement in every direction
         val_list = [[x, y - 1, "L"],[x, y + 1, "R"], [x - 1, y, "U"], [x + 1, y, "D"]]
         children = []
         for i in val_list:
             child = self.shuffle(self.board, x, y, i[0], i[1])
             if child is not None and child not in boardsUsed:
+                # then create child node 
                 child_node = Node(child, self.level + 1, 0)
                 child_node.movement = i[2]
                 children.append(child_node)
@@ -84,12 +87,14 @@ class Puzzle:
         self.solutionAVals = []
         self.solutionfVals = []
 
+    #returns the coordinates of a number in a puzzle
     def findCoordinates(self, num, board):
         for i in range(len(board)):
             for j in range(len(board[0])):
                 if (num == board[i][j]):
                     return i,j
 
+    #calcluates manhattan distance between initial and goal boards
     def calculateManhattan(self, initial, goal):
         total = 0
         for i in range(1,9):
@@ -98,6 +103,7 @@ class Puzzle:
             total += abs(initial_x-goal_x) + abs(goal_y-initial_y)
         return total
 
+    #finds the next number tile when traveling in a clockwise circle 
     def findNext(self, num, board):
         num_x, num_y = self.findCoordinates(num,board)
         if (num_x == 1 and num_y == 0):
@@ -105,15 +111,18 @@ class Puzzle:
         else:
             for j in range(len(clockwiseOrder)):
                 if (clockwiseOrder[j][0] == num_x and clockwiseOrder[j][1] == num_y):
+                    # gets the coordintes of the next tile in a clockwise circle 
                     coords = clockwiseOrder[j+1]
                     xcord = coords[0]
                     ycord = coords[1]
                     return board[xcord][ycord]
 
+    #calculates hueristic#2 where 2 is added for every tile out of place when traveling ina  clockwise circle and 1 for an incorrect center tile 
     def clockWise(self, initial, goal):
         total = 0
         for c in range(len(clockwiseOrder)):
             num = initial[clockwiseOrder[c][0]][clockwiseOrder[c][1]]
+            #doesnt calculate for blank 
             if (num != 0):
                 nextIntialNum = self.findNext(num, initial)
                 nextGoalNum = self.findNext(num, goal)
@@ -130,12 +139,13 @@ class Puzzle:
         return 3*self.clockWise(initial, goal) + self.calculateManhattan(intial, goal)
 
     def f(self, start, goal):
-        return self.h1(start.board, goal) + start.level   
+        #choose which heuristic to test for here 
+        return self.h2(start.board, goal) + start.level   
 
     def process(self):
+        #initializing values for search 
         start = initial
         goal = goalBoard
-        
         start = Node(start, 0, 0)
         start.fval = self.f(start, goal)
         
@@ -146,11 +156,11 @@ class Puzzle:
             self.solutionfVals.append(str(cur.fval))
             if cur.movement != "":
                 self.solutionAVals.append(cur.movement)
-            
-            if(self.h1(cur.board,goal) == 0):
+            #choose which heuristic to test for here 
+            if(self.h2(cur.board,goal) == 0):
                 solutionBoard = cur.board
                 self.solutionN += 1
-                f = open("output.txt", "w+")
+                f = open("output1h2.txt", "w+")
                 for i in range(3):
                     for j in range(3):
                         f.write(str(initial[i][j]) + " ")
@@ -172,7 +182,7 @@ class Puzzle:
             self.open.sort(key = lambda x:x.fval,reverse=False)
 
 
-loadInputFile("Sample_Input.txt")
+loadInputFile("Input2.txt")
 puz = Puzzle()
 puz.process()
 
