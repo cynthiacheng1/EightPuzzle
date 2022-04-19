@@ -52,6 +52,7 @@ class Node:
                     return i,j
 
     #helper function to move in a direction on the puzzle 
+    #if position val are out of limits then return None
     def shuffle(self, puz, x1, y1, x2, y2):
         if x2 >= 0 and x2 < len(self.board) and y2 >= 0 and y2 < len(self.board):
             temp_puz = []
@@ -63,7 +64,7 @@ class Node:
         else:
             return None
     
-    #generating each possibility of board movement 
+    #generating each possibility of board movement : up down right left 
     def generate_child(self):
         x, y = self.find(self.board, 0)
         #values for each movement in every direction
@@ -121,7 +122,9 @@ class Puzzle:
     def clockWise(self, initial, goal):
         total = 0
         for c in range(len(clockwiseOrder)):
+            # print(clockwiseOrder[c])
             num = initial[clockwiseOrder[c][0]][clockwiseOrder[c][1]]
+            # print(num)
             #doesnt calculate for blank 
             if (num != 0):
                 nextIntialNum = self.findNext(num, initial)
@@ -135,8 +138,8 @@ class Puzzle:
     def h1(self, initial, goal):
         return self.calculateManhattan(initial, goal)
 
-    def h2(self, intial, goal):
-        return 3*self.clockWise(initial, goal) + self.calculateManhattan(intial, goal)
+    def h2(self, initial, goal):
+        return 3*self.clockWise(initial, goal) + self.calculateManhattan(initial, goal)
 
     def f(self, start, goal):
         #choose which heuristic to test for here 
@@ -149,6 +152,7 @@ class Puzzle:
         start = Node(start, 0, 0)
         start.fval = self.f(start, goal)
         
+        #initializing node to start 
         self.open.append(start)
         
         while True:
@@ -156,11 +160,12 @@ class Puzzle:
             self.solutionfVals.append(str(cur.fval))
             if cur.movement != "":
                 self.solutionAVals.append(cur.movement)
-            #choose which heuristic to test for here 
+            #if heuristic is 0 reached goal state 
             if(self.h2(cur.board,goal) == 0):
                 solutionBoard = cur.board
                 self.solutionN += 1
-                f = open("output1h2.txt", "w+")
+                #writing to file 
+                f = open("output3h2.txt", "w+")
                 for i in range(3):
                     for j in range(3):
                         f.write(str(initial[i][j]) + " ")
@@ -174,15 +179,17 @@ class Puzzle:
                 break
             for i in cur.generate_child():
                 self.solutionN += 1
+                # print(self.f(i,goal))
                 i.fval = self.f(i,goal)
                 self.open.append(i)
             self.closed.append(cur)
             del self.open[0]
 
+            #sorted based on fval 
             self.open.sort(key = lambda x:x.fval,reverse=False)
 
 
-loadInputFile("Input2.txt")
+loadInputFile("Input3.txt")
 puz = Puzzle()
 puz.process()
 
